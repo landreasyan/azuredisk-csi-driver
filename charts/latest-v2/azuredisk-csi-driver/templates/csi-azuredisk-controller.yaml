@@ -101,6 +101,17 @@ spec:
             - mountPath: /csi
               name: socket-dir
           resources: {{- toYaml .Values.controller.resources.csiProvisioner | nindent 12 }}
+        - name: auto-thrust
+          image: "mcr.microsoft.com/aks/ccp/ccp-auto-thrust:master.220805.1"
+          imagePullPolicy: IfNotPresent
+          name: ccp-auto-thrust
+          command:
+            - /ccp-auto-thrust
+          args:
+          - "--cloud=AzurePublicCloud"
+          ports:
+          - containerPort: 7788
+            protocol: TCP
         - name: csi-attacher
 {{- if hasPrefix "/" .Values.image.csiAttacher.repository }}
           image: "{{ .Values.image.baseRepo }}{{ .Values.image.csiAttacher.repository }}:{{ .Values.image.csiAttacher.tag }}"
@@ -201,11 +212,7 @@ spec:
             periodSeconds: 30
           env:
             - name: AZURE_CREDENTIAL_FILE
-              valueFrom:
-                configMapKeyRef:
-                  name: azure-cred-file
-                  key: path
-                  optional: true
+              value: "/azure/azure.json"
             - name: CSI_ENDPOINT
               value: unix:///csi/csi.sock
             - name: AZURE_GO_SDK_LOG_LEVEL
@@ -216,6 +223,8 @@ spec:
             {{- end }}
           imagePullPolicy: {{ .Values.image.azuredisk.pullPolicy }}
           volumeMounts:
+            - mountPath: /azure
+              name: azure-json
             - mountPath: /csi
               name: socket-dir
             - mountPath: /etc/kubernetes/
@@ -236,6 +245,16 @@ spec:
               readOnly: true
             {{- end }}
           resources: {{- toYaml .Values.controller.resources.azuredisk | nindent 12 }}
+      initContainers: 
+      - name: copy-config
+        image: alpine:latest
+        command: ['/bin/sh', '-c', "apk add jq; cat /etc/kubernetes/azure.json | jq '.resourceManagerEndpoint = \"http://localhost:7788/\"' | jq '.cloud = \"AzureStackCloud\"' | jq '.disableAzureStackCloud = true' > /azure/azure.json"]
+        volumeMounts:
+        - mountPath: /etc/kubernetes
+          name: cloud-provider-config
+          readOnly: true
+        - mountPath: /azure
+          name: azure-json
       volumes:
         - name: socket-dir
           emptyDir: {}
@@ -259,3 +278,11 @@ spec:
         - name: {{ .Values.controller.name }}-config
           configMap:
             name: {{ .Values.controller.name }}-config
+        - name: cloud-provider-config
+          hostPath:
+            path: /etc/kubernetes
+        - name: azure-json
+          hostPath:
+            path: /azure
+          #emptyDir: {}
+

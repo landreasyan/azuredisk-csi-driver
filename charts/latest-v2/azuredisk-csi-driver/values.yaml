@@ -74,9 +74,9 @@ controller:
   provisionerWorkerThreads: 40
   attacherWorkerThreads: 500
   vmssCacheTTLInSeconds: -1
-  enableAzureClientAttachDetachRateLimiter: true
-  azureClientAttachDetachRateLimiterQPS: 1.3
-  azureClientAttachDetachRateLimiterBucket: 80
+  enableAzureClientAttachDetachRateLimiter: false
+  azureClientAttachDetachRateLimiterQPS: 1.333
+  azureClientAttachDetachRateLimiterBucket: 800
   logLevel: 5
   tolerations:
     - key: "node-role.kubernetes.io/master"
@@ -289,7 +289,7 @@ windows:
         memory: 40Mi
   useHostProcessContainers: false
 
-cloud: AzurePublicCloud
+cloud: AzureStackCloud
 
 storageClasses:
   create: true
