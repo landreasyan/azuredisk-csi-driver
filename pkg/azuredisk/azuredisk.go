@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
@@ -148,6 +149,8 @@ type Driver struct {
 	// a timed cache for disk lun collision check throttling
 	checkDiskLunThrottlingCache azcache.Resource
 	enableMigrationMonitor      bool
+	// HTTP client for wireserver calls
+	httpClient                  *http.Client
 }
 
 // NewDriver Creates a NewCSIDriver object. Assumes vendor version is equal to driver version &
@@ -201,6 +204,11 @@ func NewDriver(options *DriverOptions) *Driver {
 	driver.ioHandler = azureutils.NewOSIOHandler()
 	driver.hostUtil = hostutil.NewHostUtil()
 	driver.enableMigrationMonitor = options.EnableMigrationMonitor
+
+	// Initialize HTTP client for wireserver calls
+	driver.httpClient = &http.Client{
+		Timeout: 30 * time.Second,
+	}
 
 	if driver.NodeID == "" {
 		// nodeid is not needed in controller component

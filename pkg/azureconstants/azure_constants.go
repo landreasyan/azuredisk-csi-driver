@@ -110,6 +110,7 @@ const (
 	// define tag value delimiter and default is comma
 	TagValueDelimiterField = "tagvaluedelimiter"
 	AzureDiskDriverTag     = "kubernetes-azure-dd"
+	QADWireserverEndpoint  = "http://168.63.129.16/vmservice/diskstate"
 )
 
 var (
