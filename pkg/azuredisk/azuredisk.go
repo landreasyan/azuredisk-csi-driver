@@ -37,6 +37,7 @@ import (
 
 	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -150,7 +151,7 @@ type Driver struct {
 	checkDiskLunThrottlingCache azcache.Resource
 	enableMigrationMonitor      bool
 	// HTTP client for wireserver calls
-	httpClient                  *http.Client
+	httpClient *http.Client
 }
 
 // NewDriver Creates a NewCSIDriver object. Assumes vendor version is equal to driver version &
@@ -658,6 +659,31 @@ func (d *Driver) getUsedLunsFromNode(ctx context.Context, nodeName k8stypes.Node
 		usedLuns = append(usedLuns, int(*disk.Lun))
 	}
 	return usedLuns, nil
+}
+
+func (d *Driver) getPVFromDiskURI(ctx context.Context, diskURI string) (*v1.PersistentVolume, error) {
+	// Use label selector to filter PVs managed by Azure Disk CSI driver
+	labelSelector := "pv.kubernetes.io/provisioned-by=disk.csi.azure.com"
+	klog.Infof("Looking for PV with handle %s", diskURI)
+
+	pvList, err := d.kubeClient.CoreV1().PersistentVolumes().List(context.TODO(), metav1.ListOptions{
+		LabelSelector: labelSelector,
+	})
+	if err != nil {
+		pvList, err = d.kubeClient.CoreV1().PersistentVolumes().List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
+		if err != nil {
+			return nil, fmt.Errorf("failed to list PersistentVolumes: %v", err)
+		}
+	}
+	// Search for a PV with matching VolumeHandle
+	for _, pv := range pvList.Items {
+		if pv.Spec.CSI != nil && pv.Spec.CSI.VolumeHandle == diskURI {
+			klog.Infof("Found PV %s with handle %s", pv.Name, diskURI)
+			return &pv, nil
+		}
+	}
+	klog.V(2).Infof("cannot find PV with diskURI(%s)", diskURI)
+	return nil, nil
 }
 
 // getNodeInfoFromLabels get zone, instanceType from node labels
