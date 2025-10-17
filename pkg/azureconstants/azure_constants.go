@@ -71,6 +71,7 @@ const (
 	SubscriptionIDField               = "subscriptionid"
 	ResourceGroupField                = "resourcegroup"
 	DataAccessAuthModeField           = "dataaccessauthmode"
+	QADEnabledField                   = "qadenabled"
 	ResourceNotFound                  = "ResourceNotFound"
 	SkuNameField                      = "skuname"
 	SourceDiskSearchMaxDepth          = 10
@@ -111,6 +112,8 @@ const (
 	TagValueDelimiterField = "tagvaluedelimiter"
 	AzureDiskDriverTag     = "kubernetes-azure-dd"
 	QADWireserverEndpoint  = "http://168.63.129.16/vmservice/diskstate"
+	QADCounterAnnotation   = "azuredisk.csi.azure.com/qad-counter"
+	BlobURLAnnotation      = "azuredisk.csi.azure.com/blob-url"
 )
 
 var (
