@@ -142,7 +142,11 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 	var lun string
 	// Check if this volume is using the QAD path.
 	// If yes, increment the qad-counter and make an HTTP request to the QAD wireserver endpoint.
-	if pv, isUsingQAD, err := d.isUsingQADPath(ctx, diskURI); isUsingQAD && err == nil {
+	pv, isUsingQAD, err := d.isUsingQADPath(ctx, diskURI)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "NodeStageVolume: failed to determine if volume %s is using QAD path: %v", diskURI, err)
+	}
+	if isUsingQAD {
 		blobURL := pv.Annotations[consts.BlobURLAnnotation]
 		qadCounterVal, err := incrementQADCounterAnnotation(d.kubeClient, pv)
 		if err != nil {
